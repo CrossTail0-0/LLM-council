@@ -246,9 +246,9 @@ class LLMCouncilPipeline:
         
         return {
             "query": query,
-            "stage_1_responses": [resp.model_dump() for resp in stage_1_responses],
-            "stage_2_reviews": [review.model_dump() for review in stage_2_reviews],
-            "stage_3_final": stage_3_final.model_dump(),
+            "stage_1_responses": [resp.to_dict() for resp in stage_1_responses],
+            "stage_2_reviews": [review.to_dict() for review in stage_2_reviews],
+            "stage_3_final": stage_3_final.to_dict(),
             "processing_time": round(processing_time, 2)
         }
 

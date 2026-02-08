@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from dataclasses import dataclass, field, asdict
+from typing import List, Dict, Any, Optional
 from enum import Enum
 
 
@@ -11,48 +11,92 @@ class Stage(str, Enum):
     COMPLETE = "complete"
 
 
-class QueryRequest(BaseModel):
+@dataclass
+class QueryRequest:
     """User query request"""
-    query: str = Field(..., min_length=1, description="User's question or prompt")
+    query: str
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(query=data.get("query", ""))
+    
+    def validate(self) -> tuple[bool, Optional[str]]:
+        """Validate the request"""
+        if not self.query or not self.query.strip():
+            return False, "Query cannot be empty"
+        return True, None
 
 
-class LLMResponse(BaseModel):
+@dataclass
+class LLMResponse:
     """Individual LLM response"""
-    model_name: str = Field(..., description="Name of the LLM model")
-    response: str = Field(..., description="The LLM's response text")
-    model_id: str = Field(..., description="Unique identifier for this model")
+    model_name: str
+    response: str
+    model_id: str
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
 
 
-class RankingEntry(BaseModel):
+@dataclass
+class RankingEntry:
     """Single ranking entry from an LLM"""
-    response_id: str = Field(..., description="ID of the response being ranked")
-    rank: int = Field(..., ge=1, description="Rank position (1 is best)")
-    reasoning: str = Field(..., description="Why this rank was assigned")
+    response_id: str
+    rank: int
+    reasoning: str
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
 
 
-class ReviewResponse(BaseModel):
+@dataclass
+class ReviewResponse:
     """LLM's review of other responses"""
-    reviewer_model: str = Field(..., description="Model doing the reviewing")
-    rankings: List[RankingEntry] = Field(..., description="Ranked list of responses")
+    reviewer_model: str
+    rankings: List[RankingEntry]
+    
+    def to_dict(self) -> dict:
+        return {
+            "reviewer_model": self.reviewer_model,
+            "rankings": [r.to_dict() for r in self.rankings]
+        }
 
 
-class FinalResponse(BaseModel):
+@dataclass
+class FinalResponse:
     """Chairman's final synthesized response"""
-    content: str = Field(..., description="The final synthesized answer")
-    chairman_model: str = Field(..., description="Model that acted as chairman")
+    content: str
+    chairman_model: str
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
 
 
-class PipelineResponse(BaseModel):
+@dataclass
+class PipelineResponse:
     """Complete pipeline response"""
-    query: str = Field(..., description="Original user query")
-    stage_1_responses: List[LLMResponse] = Field(..., description="Individual LLM responses")
-    stage_2_reviews: List[ReviewResponse] = Field(..., description="Cross-review rankings")
-    stage_3_final: FinalResponse = Field(..., description="Final synthesized response")
-    processing_time: float = Field(..., description="Total processing time in seconds")
+    query: str
+    stage_1_responses: List[LLMResponse]
+    stage_2_reviews: List[ReviewResponse]
+    stage_3_final: FinalResponse
+    processing_time: float
+    
+    def to_dict(self) -> dict:
+        return {
+            "query": self.query,
+            "stage_1_responses": [r.to_dict() for r in self.stage_1_responses],
+            "stage_2_reviews": [r.to_dict() for r in self.stage_2_reviews],
+            "stage_3_final": self.stage_3_final.to_dict(),
+            "processing_time": self.processing_time
+        }
 
 
-class HealthResponse(BaseModel):
+@dataclass
+class HealthResponse:
     """Health check response"""
     status: str
     models_configured: int
     hf_token_set: bool
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
